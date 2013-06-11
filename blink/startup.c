@@ -25,21 +25,11 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * $Id: startup.c 646 2011-11-24 22:19:12Z dergraaf $
  */
 // ----------------------------------------------------------------------------
 
 #include <stdint.h>
-//#include <xpcc/architecture/utils.hpp>
-
-#if defined(STM32F2XX)
-#	include <stm32f2xx.h>
-#elif defined(STM32F4XX)
-#	include <stm32f4xx.h>
-#endif
-
-//#include "xpcc_config.hpp"
+#include <stm32f4xx.h>
 
 // ----------------------------------------------------------------------------
 #define FLASH_WAIT_STATE_0		0x0
@@ -59,9 +49,6 @@
  * As they are weak aliases, any function with the same name will override
  * this definition.
  */
-
-
-
 void Reset_Handler(void);
 void NMI_Handler(void)				__attribute__ ((weak, alias("defaultHandler")));
 void HardFault_Handler(void)		__attribute__ ((weak, alias("defaultHandler")));
@@ -164,21 +151,7 @@ typedef void (* const FunctionPointer)(void);
 // defined in the linkerscript
 extern uint32_t __stack_end;
 
-#if CORTEX_VECTORS_RAM
-// Define the vector table
-FunctionPointer flashVectors[4] 
-__attribute__ ((section(".reset"))) =
-{
-	(FunctionPointer) &__stack_end,	// stack pointer
-	Reset_Handler,				// code entry point
-	NMI_Handler,				// NMI handler
-	HardFault_Handler,			// hard fault handler
-};
-
-FunctionPointer ramVectors[] __attribute__ ((section(".vectors"))) =
-#else
 FunctionPointer flashVectors[] __attribute__ ((section(".reset"))) =
-#endif
 {
 	(FunctionPointer) &__stack_end,	// stack pointer
 	Reset_Handler,				// code entry point
@@ -338,26 +311,17 @@ Reset_Handler(void)
 		*(dest++) = 0;
 	}
 	
-#if defined(STM32F4XX)
 	// prepare flash latency for working at 168MHz and supply voltage > 2.7
 	FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY) | FLASH_WAIT_STATE_5;
-#elif defined(STM32F2XX)
-	// prepare flash latency for working at 120MHz and supply voltage > 2.7
-	FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY) | FLASH_WAIT_STATE_3;
-#else
-	#error "This file is not supposed to be used with given CPU (only STM32F2/4xx)"
-#endif
 	
 	// enable flash prefetch
 	FLASH->ACR |= FLASH_ACR_PRFTEN | FLASH_ACR_DCEN | FLASH_ACR_ICEN;
-
-#if defined(STM32F4XX)
+	
 	// Enable FPU in privileged and user mode
 	SCB->CPACR |= ((3UL << 10*2) | (3UL << 11*2));  // set CP10 and CP11 Full Access
 	
 	// Enable Core Coupled Memory (CCM)
 	RCC->AHB1ENR |= RCC_AHB1ENR_CCMDATARAMEN;
-#endif
 	
 	// Enable GPIO clock
 	// TODO adapt to actual pin count!

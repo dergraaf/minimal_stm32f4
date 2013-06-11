@@ -27,8 +27,12 @@ _init(void)
 }
 
 void
-bogus_delay(unsigned int n) {
-	while (n--) { }
+delay_bogus(uint32_t n)
+{
+	volatile uint32_t t = n;
+	while (t--) {
+		// wait
+	}
 }
 
 bool
@@ -109,9 +113,12 @@ main (void)
 
 	while(1) {
 		PD->ODR = (1 << 15);
-		bogus_delay(1000000);
+		//delay_bogus(1000000);
+		delay_us(500000);
+		
 		PD->ODR = (0 << 15);
-		bogus_delay(1000000);
+		//delay_bogus(1000000);
+		delay_us(500000);
 	}
 }
 
